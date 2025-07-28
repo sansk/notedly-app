@@ -1,4 +1,7 @@
 # Logs
+.env
+PLAN.md
+DEPLOYMENT.md
 logs
 *.log
 npm-debug.log*
