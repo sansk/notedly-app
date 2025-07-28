@@ -9,6 +9,7 @@ const routes = [
     { path: '/login', page: 'login.js', requiresAuth: false },
     { path: '/signup', page: 'signup.js', requiresAuth: false },
     { path: '/editor', page: 'editor.js', requiresAuth: true },
+    { path: '/edit-profile', page: 'editProfile.js', requiresAuth: true },
 ];
 
 // Initialize the router with the defined routes

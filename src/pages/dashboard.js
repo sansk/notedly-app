@@ -21,8 +21,13 @@ const Dashboard = {
             notes = await NotesService.getNotes();
             userProfile = await UserService.getUserProfile(user.uid);
         }
-        const displayName = userProfile?.displayName || user?.displayName || 'User';
+        const displayName = userProfile?.displayName || user?.displayName || '';
         const email = user?.email || '';
+        const bio = userProfile?.bio || '';
+        const location = userProfile?.location || '';
+        const photoURL = userProfile?.photoURL || user?.photoURL || 'https://i.pravatar.cc/100';
+        const isGoogleLinked = user?.providerData?.some(p => p.providerId === 'google.com');
+        const isPasswordUser = user?.providerData?.some(p => p.providerId === 'password');
         return `
             <div class="bg-gray-100 min-h-screen">
                 <!-- Dashboard Header -->
@@ -36,12 +41,12 @@ const Dashboard = {
                             <button id="theme-toggle" class="mr-4 text-gray-600 dark:text-gray-300">Dark Mode</button>
                             <div class="relative">
                                 <button id="user-menu-button" class="flex items-center focus:outline-none">
-                                    <img src="https://i.pravatar.cc/40" alt="User" class="w-10 h-10 rounded-full">
-                                    <span class="ml-2 font-semibold text-blue-700">${displayName}</span>
+                                    <img src="${photoURL}" alt="User" class="w-10 h-10 rounded-full">
+                                    <span class="ml-2 font-semibold text-blue-700">${displayName || 'User'}</span>
                                 </button>
-                                <div id="user-menu-dropdown" class="hidden absolute right-0 mt-2 w-64 bg-white dark:bg-gray-800 rounded-md shadow-lg py-1 z-10">
+                                <div id="user-menu-dropdown" class="hidden absolute right-0 mt-2 w-72 bg-white dark:bg-gray-800 rounded-md shadow-lg py-1 z-10">
                                     <div class="px-4 py-2 border-b dark:border-gray-700">
-                                        <div class="font-bold text-blue-700">${displayName}</div>
+                                        <div class="font-bold text-blue-700">${displayName || 'User'}</div>
                                         <div class="text-xs text-gray-500">${email}</div>
                                     </div>
                                     <a href="#" id="edit-profile-btn" class="block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">Edit Profile</a>
@@ -64,11 +69,31 @@ const Dashboard = {
 
                 <!-- Edit Profile Modal -->
                 <div id="edit-profile-modal" class="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50 hidden">
-                  <div class="bg-white rounded-lg shadow-lg p-8 w-full max-w-sm">
-                    <h3 class="text-xl font-bold mb-4">Edit Profile</h3>
+                  <div class="bg-white rounded-lg shadow-lg p-8 w-full max-w-md">
+                    <h3 class="text-xl font-bold mb-4">User Management</h3>
                     <form id="edit-profile-form">
-                      <label class="block mb-2 font-semibold">Display Name</label>
-                      <input type="text" id="edit-display-name" class="w-full px-3 py-2 border rounded mb-4" value="${displayName}" required />
+                      <div class="flex flex-col items-center mb-4">
+                        <img id="edit-profile-pic-preview" src="${photoURL}" alt="Profile Picture" class="w-20 h-20 rounded-full mb-2 object-cover border" />
+                        <input type="file" id="edit-profile-pic" accept="image/*" class="mb-2" />
+                      </div>
+                      <label class="block mb-1 font-semibold">Display Name</label>
+                      <input type="text" id="edit-display-name" class="w-full px-3 py-2 border rounded mb-3" value="${displayName}" required />
+                      <label class="block mb-1 font-semibold">Email</label>
+                      <input type="email" id="edit-email" class="w-full px-3 py-2 border rounded mb-3 bg-gray-100" value="${email}" readonly />
+                      <label class="block mb-1 font-semibold">Password</label>
+                      <div class="flex mb-3">
+                        <input type="password" id="edit-password" class="w-full px-3 py-2 border rounded" placeholder="${isPasswordUser ? 'Change password' : 'Set password'}" ${isPasswordUser ? '' : 'disabled'} />
+                        ${isPasswordUser ? '' : '<span class="ml-2 text-xs text-gray-400">(Connect email/password to enable)</span>'}
+                      </div>
+                      <label class="block mb-1 font-semibold">Google Account</label>
+                      <div class="flex items-center mb-3">
+                        <span class="mr-2">${isGoogleLinked ? 'Connected' : 'Not Connected'}</span>
+                        ${isGoogleLinked ? '' : '<button type="button" id="connect-google-btn" class="bg-blue-600 text-white px-2 py-1 rounded text-xs">Connect</button>'}
+                      </div>
+                      <label class="block mb-1 font-semibold">Short Bio</label>
+                      <textarea id="edit-bio" class="w-full px-3 py-2 border rounded mb-3" rows="2" placeholder="Tell us about yourself...">${bio}</textarea>
+                      <label class="block mb-1 font-semibold">Location</label>
+                      <input type="text" id="edit-location" class="w-full px-3 py-2 border rounded mb-4" value="${location}" placeholder="Your location" />
                       <div class="flex justify-end space-x-2">
                         <button type="button" id="cancel-edit-profile" class="px-4 py-2 rounded bg-gray-200 hover:bg-gray-300">Cancel</button>
                         <button type="submit" class="px-4 py-2 rounded bg-blue-600 text-white hover:bg-blue-700">Save</button>
@@ -153,40 +178,28 @@ const Dashboard = {
 
         // Edit Profile
         if (editProfileBtn) {
-            editProfileBtn.addEventListener('click', () => {
-                editProfileModal.classList.remove('hidden');
-                userMenuDropdown.classList.add('hidden');
-            });
-        }
-        if (cancelEditProfile) {
-            cancelEditProfile.addEventListener('click', () => {
-                editProfileModal.classList.add('hidden');
-            });
-        }
-        if (editProfileForm) {
-            editProfileForm.addEventListener('submit', async (e) => {
+            editProfileBtn.addEventListener('click', (e) => {
                 e.preventDefault();
-                const newName = editDisplayName.value.trim();
-                if (!newName) return;
-                try {
-                    const user = await new Promise(resolve => {
-                        const unsub = AuthService.onAuthStateChanged(u => { unsub(); resolve(u); });
-                    });
-                    await UserService.setUserProfile(user.uid, { displayName: newName });
-                    editProfileModal.classList.add('hidden');
-                    window.location.reload();
-                } catch (err) {
-                    alert('Failed to update profile.');
-                }
+                userMenuDropdown.classList.add('hidden');
+                router.navigateTo('/edit-profile');
             });
         }
+        // (Edit profile modal logic removed; now handled in /edit-profile route)
 
-        // Close dropdown if clicked outside
-        document.addEventListener('click', (e) => {
+        // Close dropdown/modal if clicked outside, but not when opening modal
+        document.addEventListener('mousedown', (e) => {
+            // Dropdown
             if (!userMenuButton.contains(e.target) && !userMenuDropdown.contains(e.target)) {
                 userMenuDropdown.classList.add('hidden');
             }
-            if (editProfileModal && !editProfileModal.classList.contains('hidden') && !editProfileModal.contains(e.target) && e.target !== editProfileBtn) {
+            // Modal: don't close if click is inside modal or on the edit button
+            if (
+                editProfileModal &&
+                !editProfileModal.classList.contains('hidden') &&
+                !editProfileModal.contains(e.target) &&
+                e.target !== editProfileBtn &&
+                !editProfileBtn.contains(e.target)
+            ) {
                 editProfileModal.classList.add('hidden');
             }
         });

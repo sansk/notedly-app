@@ -10,7 +10,8 @@ const firebaseConfig = {
     apiKey: "AIzaSyCm98ugTapZ1SbqT_l4maB3XMwBXnGl8oE",
     authDomain: "notedly-2825jy.firebaseapp.com",
     projectId: "notedly-2825jy",
-    storageBucket: "notedly-2825jy.firebasestorage.app",
+    //storageBucket: "notedly-2825jy.firebasestorage.app",
+    storageBucket: "notedly-2825jy.appspot.com",
     messagingSenderId: "348533817564",
     appId: "1:348533817564:web:df8bc751bd25e20696f419"
 };
@@ -23,4 +24,4 @@ const auth = getAuth(app);
 const db = getFirestore(app);
 
 // Export the services for use in other parts of the application
-export { auth, db };
+export { app, auth, db };
